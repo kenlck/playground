@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Currency Input Test</title>
+  <script type="module">
+    import { LitElement, html, css } from 'https://cdn.jsdelivr.net/gh/lit/dist@3/core/lit-core.min.js';
+
+    class CurrencyInput extends LitElement {
+      static properties = {
+        value: { type: Number }
+      };
+
+      static styles = css`
+        input {
+          font-family: inherit;
+          font-size: 1rem;
+          padding: 0.5rem;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          text-align: right;
+          width: 200px;
+        }
+
+        input:focus {
+          outline: none;
+          border-color: #4CAF50;
+          box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+      `;
+
+      constructor() {
+        super();
+        this.value = 0;
+        this.isFocused = false;
+        this.rawInput = '';
+      }
+
+      formatCurrency(num) {
+        return new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(num || 0);
+      }
+
+      handleInput(e) {
+        const input = e.target.value;
+        
+        // Only allow digits and one decimal point
+        let cleaned = input.replace(/[^\d.]/g, '');
+        
+        // Prevent multiple decimal points
+        const parts = cleaned.split('.');
+        if (parts.length > 2) {
+          cleaned = parts[0] + '.' + parts.slice(1).join('');
+        }
+        
+        // Limit to 2 decimal places
+        if (parts.length === 2 && parts[1].length > 2) {
+          cleaned = parts[0] + '.' + parts[1].slice(0, 2);
+        }
+        
+        this.rawInput = cleaned;
+        const numValue = parseFloat(cleaned) || 0;
+        this.value = numValue;
+        
+        // Update the input field with cleaned value
+        e.target.value = cleaned;
+        
+        this.dispatchEvent(new CustomEvent('value-changed', {
+          detail: { value: this.value },
+          bubbles: true,
+          composed: true
+        }));
+      }
+
+      handleFocus(e) {
+        this.isFocused = true;
+        this.rawInput = this.value.toString();
+        this.requestUpdate();
+        this.updateComplete.then(() => {
+          const input = this.shadowRoot.querySelector('input');
+          if (input) input.select();
+        });
+      }
+
+      handleBlur() {
+        this.isFocused = false;
+        this.rawInput = '';
+        this.requestUpdate();
+      }
+
+      render() {
+        const displayValue = this.isFocused ? this.rawInput : this.formatCurrency(this.value);
+        
+        return html`
+          <input
+            type="text"
+            .value=${displayValue}
+            @input=${this.handleInput}
+            @focus=${this.handleFocus}
+            @blur=${this.handleBlur}
+          />
+        `;
+      }
+    }
+
+    customElements.define('currency-input', CurrencyInput);
+
+    class CurrencyDemo extends LitElement {
+      static properties = {
+        amount1: { type: Number },
+        amount2: { type: Number },
+        amount3: { type: Number }
+      };
+
+      static styles = css`
+        :host {
+          display: block;
+          padding: 2rem;
+          font-family: system-ui, -apple-system, sans-serif;
+          max-width: 600px;
+          margin: 0 auto;
+        }
+
+        h1 {
+          color: #333;
+          margin-bottom: 1rem;
+        }
+
+        .instructions {
+          background: #e3f2fd;
+          padding: 1rem;
+          border-radius: 4px;
+          margin-bottom: 2rem;
+          border-left: 4px solid #2196F3;
+        }
+
+        .instructions h3 {
+          margin-top: 0;
+          color: #1976D2;
+        }
+
+        .instructions ul {
+          margin-bottom: 0;
+          line-height: 1.6;
+        }
+
+        .demo {
+          margin-bottom: 1.5rem;
+          padding: 1.5rem;
+          background: #f9f9f9;
+          border-radius: 8px;
+          border: 1px solid #e0e0e0;
+        }
+
+        label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-weight: 500;
+          color: #555;
+        }
+
+        .output {
+          margin-top: 0.75rem;
+          padding: 0.75rem;
+          background: white;
+          border-radius: 4px;
+          border: 1px solid #e0e0e0;
+          font-family: 'Courier New', monospace;
+        }
+      `;
+
+      constructor() {
+        super();
+        this.amount1 = 1000000;
+        this.amount2 = 0;
+        this.amount3 = 12345.67;
+      }
+
+      render() {
+        return html`
+          <h1>Currency Input Component Test</h1>
+          
+          <div class="instructions">
+            <h3>How it works:</h3>
+            <ul>
+              <li><strong>Click to focus:</strong> Shows raw number, selects all text</li>
+              <li><strong>Type normally:</strong> Enter numbers like a regular input</li>
+              <li><strong>Click away (blur):</strong> Automatically formats to 1,000,000.00</li>
+              <li>Try typing decimals, large numbers, and replacing text</li>
+            </ul>
+          </div>
+
+          <div class="demo">
+            <label>Amount 1 (starts at 1,000,000):</label>
+            <currency-input
+              .value=${this.amount1}
+              @value-changed=${(e) => this.amount1 = e.detail.value}
+            ></currency-input>
+            <div class="output">Raw value: ${this.amount1}</div>
+          </div>
+
+          <div class="demo">
+            <label>Amount 2 (starts at 0):</label>
+            <currency-input
+              .value=${this.amount2}
+              @value-changed=${(e) => this.amount2 = e.detail.value}
+            ></currency-input>
+            <div class="output">Raw value: ${this.amount2}</div>
+          </div>
+
+          <div class="demo">
+            <label>Amount 3 (starts at 12,345.67):</label>
+            <currency-input
+              .value=${this.amount3}
+              @value-changed=${(e) => this.amount3 = e.detail.value}
+            ></currency-input>
+            <div class="output">Raw value: ${this.amount3}</div>
+          </div>
+        `;
+      }
+    }
+
+    customElements.define('currency-demo', CurrencyDemo);
+  </script>
+</head>
+<body>
+  <currency-demo></currency-demo>
+</body>
+</html>
