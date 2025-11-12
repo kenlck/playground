@@ -9,7 +9,8 @@
 
     class CurrencyInput extends LitElement {
       static properties = {
-        value: { type: Number }
+        value: { type: Number },
+        onChange: { type: Function }
       };
 
       static styles = css`
@@ -33,6 +34,7 @@
       constructor() {
         super();
         this.value = 0;
+        this.onChange = null;
         this.isFocused = false;
         this.rawInput = '';
       }
@@ -67,6 +69,11 @@
         
         // Update the input field with cleaned value
         e.target.value = cleaned;
+        
+        // Call onChange callback if provided
+        if (typeof this.onChange === 'function') {
+          this.onChange(this.value);
+        }
         
         this.dispatchEvent(new CustomEvent('value-changed', {
           detail: { value: this.value },
@@ -112,7 +119,8 @@
       static properties = {
         amount1: { type: Number },
         amount2: { type: Number },
-        amount3: { type: Number }
+        amount3: { type: Number },
+        amount4: { type: Number }
       };
 
       static styles = css`
@@ -177,6 +185,7 @@
         this.amount1 = 1000000;
         this.amount2 = 0;
         this.amount3 = 12345.67;
+        this.amount4 = 999.99;
       }
 
       render() {
@@ -190,6 +199,7 @@
               <li><strong>Type normally:</strong> Enter numbers like a regular input</li>
               <li><strong>Click away (blur):</strong> Automatically formats to 1,000,000.00</li>
               <li>Try typing decimals, large numbers, and replacing text</li>
+              <li><strong>Two ways to handle changes:</strong> Use <code>@value-changed</code> event or <code>.onChange</code> callback</li>
             </ul>
           </div>
 
@@ -218,6 +228,15 @@
               @value-changed=${(e) => this.amount3 = e.detail.value}
             ></currency-input>
             <div class="output">Raw value: ${this.amount3}</div>
+          </div>
+
+          <div class="demo">
+            <label>Amount 4 (using onChange callback - starts at 999.99):</label>
+            <currency-input
+              .value=${this.amount4}
+              .onChange=${(value) => this.amount4 = value}
+            ></currency-input>
+            <div class="output">Raw value: ${this.amount4}</div>
           </div>
         `;
       }
